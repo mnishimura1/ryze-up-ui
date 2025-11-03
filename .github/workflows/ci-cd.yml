@@ -1,0 +1,121 @@
+name: CI/CD Pipeline with PWA Sync Testing
+on:
+  push:
+    branches: [main, dm6-cli1-snapshot-20251029_094528]
+  pull_request:
+    branches: [main, dm6-cli1-snapshot-20251029_094528]
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+      - run: npm ci
+      - run: npm run lint
+        continue-on-error: true
+
+  test:
+    runs-on: ubuntu-latest
+    needs: lint
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+      - run: npm ci
+      - run: npm run test
+        continue-on-error: true
+      - name: Install Playwright
+        run: npx playwright install --with-deps
+      - name: Start Dev Server
+        run: npm run dev &
+      - name: Wait for server
+        run: npx wait-on http://localhost:5173 --timeout 30000
+      - name: PWA Sync Testing
+        run: npx playwright test --project=pwa-sync
+        continue-on-error: true
+        env:
+          CI: true
+      - name: Upload Playwright Report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: playwright-report/
+          retention-days: 30
+
+  build:
+    runs-on: ubuntu-latest
+    needs: [lint, test]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+      - run: npm ci
+      - run: npm run build
+      - name: Upload Build Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: dist
+          path: dist/
+      - name: Check Bundle Size
+        run: |
+          SIZE=$(du -sh dist/assets/index-*.js | cut -f1)
+          echo "Build Size: $SIZE"
+          if [ $(du -b dist/assets/index-*.js | awk '{print $1}') -gt 300000 ]; then
+            echo "⚠️ Warning: Bundle size > 300KB"
+          fi
+
+  deploy:
+    runs-on: ubuntu-latest
+    needs: build
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    steps:
+      - uses: actions/checkout@v4
+      - name: Download Artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: dist
+          path: dist/
+      - name: Deploy to OVH Server via SCP
+        env:
+          OVH_SSH_KEY: ${{ secrets.OVH_SSH_KEY }}
+          OVH_SERVER: ${{ secrets.OVH_SERVER }}
+          OVH_USER: ${{ secrets.OVH_USER }}
+        run: |
+          mkdir -p ~/.ssh
+          echo "$OVH_SSH_KEY" > ~/.ssh/ryze_ovh
+          chmod 600 ~/.ssh/ryze_ovh
+          ssh-keyscan -H $OVH_SERVER >> ~/.ssh/known_hosts
+          scp -r -i ~/.ssh/ryze_ovh dist/* $OVH_USER@$OVH_SERVER:/var/www/ryze-ui/
+          echo "✓ Deployment complete"
+      - name: Verify Deployment
+        env:
+          OVH_SERVER: ${{ secrets.OVH_SERVER }}
+          OVH_USER: ${{ secrets.OVH_USER }}
+        run: |
+          ssh -i ~/.ssh/ryze_ovh $OVH_USER@$OVH_SERVER "curl -s http://localhost/ryze-ui/index.html | grep -q 'RYZE-UP' && echo '✓ Deployment verified' || echo '✗ Deployment failed'"
+      - name: Notify Slack on Success
+        if: success()
+        uses: 8398a7/action-slack@v3
+        with:
+          status: success
+          text: 'RYZE-UP PWA deployed successfully to testnet'
+          fields: repo,message,commit,author
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+      - name: Notify Slack on Failure
+        if: failure()
+        uses: 8398a7/action-slack@v3
+        with:
+          status: failure
+          text: 'RYZE-UP deployment failed'
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}

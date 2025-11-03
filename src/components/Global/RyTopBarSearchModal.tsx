@@ -1,0 +1,203 @@
+import React, { useState, useRef, useEffect } from 'react';
+import { Search, X } from 'lucide-react';
+
+interface SearchResult {
+  id: string;
+  label: string;
+  category: 'page' | 'token' | 'market';
+  icon: string;
+}
+
+const SEARCH_DATA: SearchResult[] = [
+  { id: 'markets', label: 'Markets', category: 'page', icon: '📊' },
+  { id: 'trade', label: 'Trade', category: 'page', icon: '📈' },
+  { id: 'swap', label: 'Swap', category: 'page', icon: '🔄' },
+  { id: 'perpetuals', label: 'Perpetuals', category: 'page', icon: '⚡' },
+  { id: 'portfolio', label: 'Portfolio', category: 'page', icon: '💼' },
+  { id: 'vaults', label: 'Vaults', category: 'page', icon: '🏦' },
+  { id: 'orderflow', label: 'Order Flow', category: 'page', icon: '📡' },
+  { id: 'eth', label: 'ETH', category: 'token', icon: '🪙' },
+  { id: 'btc', label: 'BTC', category: 'token', icon: '🪙' },
+  { id: 'usdc', label: 'USDC', category: 'token', icon: '💵' },
+];
+
+export const RyTopBarSearchModal: React.FC = () => {
+  const [isOpen, setIsOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [searchResults, setSearchResults] = useState<SearchResult[]>([]);
+  const inputRef = useRef<HTMLInputElement>(null);
+  const modalRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!searchQuery.trim()) {
+      setSearchResults([]);
+      return;
+    }
+
+    const query = searchQuery.toLowerCase();
+    const results = SEARCH_DATA.filter(
+      (item) =>
+        item.label.toLowerCase().includes(query) ||
+        item.category.toLowerCase().includes(query)
+    );
+    setSearchResults(results.slice(0, 8)); // Limit to 8 results
+  }, [searchQuery]);
+
+  useEffect(() => {
+    if (isOpen) {
+      inputRef.current?.focus();
+      // Disable body scroll on mobile
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = '';
+    }
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        setIsOpen(false);
+      }
+      if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
+        e.preventDefault();
+        setIsOpen(!isOpen);
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isOpen]);
+
+  const handleSelect = (result: SearchResult) => {
+    console.log('Selected:', result);
+    // Emit event or navigate based on category
+    if (result.category === 'page') {
+      window.dispatchEvent(new CustomEvent('navigate', { detail: { page: result.id } }));
+    }
+    setIsOpen(false);
+    setSearchQuery('');
+  };
+
+  return (
+    <>
+      {/* Search Button */}
+      <div className="fixed top-4 right-4 sm:top-6 sm:right-6 z-40 desktop-only">
+        <button
+          onClick={() => setIsOpen(true)}
+          className="flex items-center gap-2 px-3 py-2 rounded-lg bg-dark-border/50 hover:bg-dark-border text-dark-text/70 hover:text-dark-text transition-all text-sm"
+          aria-label="Search (Ctrl+K)"
+        >
+          <Search className="w-4 h-4" />
+          <span className="hidden sm:inline">Search...</span>
+          <kbd className="hidden sm:inline text-xs bg-dark-border rounded px-1.5 py-0.5">⌘K</kbd>
+        </button>
+      </div>
+
+      {/* Mobile Search Button */}
+      <div className="mobile-only fixed top-4 right-4 z-40">
+        <button
+          onClick={() => setIsOpen(true)}
+          className="p-2 rounded-lg bg-dark-border/50 hover:bg-dark-border text-dark-text/70 hover:text-dark-text transition-all"
+          aria-label="Search"
+        >
+          <Search className="w-5 h-5" />
+        </button>
+      </div>
+
+      {/* Modal Backdrop */}
+      {isOpen && (
+        <div
+          className="fixed inset-0 bg-black/50 z-50 transition-opacity"
+          onClick={() => setIsOpen(false)}
+          role="button"
+          aria-label="Close search modal"
+          tabIndex={0}
+          onKeyDown={(e) => e.key === 'Escape' && setIsOpen(false)}
+        />
+      )}
+
+      {/* Modal */}
+      {isOpen && (
+        <div className="fixed inset-0 z-50 flex items-start justify-center pt-12 sm:pt-20 px-4">
+          <div
+            ref={modalRef}
+            className="w-full max-w-2xl bg-dark-panel rounded-lg shadow-2xl border border-dark-border overflow-hidden animate-in fade-in slide-in-from-top-4 duration-200"
+            onClick={(e) => e.stopPropagation()}
+            role="dialog"
+            aria-label="Search dialog"
+            aria-modal="true"
+          >
+            {/* Search Input */}
+            <div className="flex items-center gap-3 px-4 py-3 border-b border-dark-border">
+              <Search className="w-5 h-5 text-dark-text/50" />
+              <input
+                ref={inputRef}
+                type="text"
+                placeholder="Search pages, tokens, markets... (ESC to close)"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="flex-1 bg-transparent outline-none text-dark-text placeholder-dark-text/50 text-base sm:text-lg"
+                aria-label="Search input"
+              />
+              <button
+                onClick={() => setIsOpen(false)}
+                className="p-1 hover:bg-dark-border rounded transition-colors"
+                aria-label="Close"
+              >
+                <X className="w-5 h-5 text-dark-text/50" />
+              </button>
+            </div>
+
+            {/* Search Results */}
+            {searchResults.length > 0 ? (
+              <div className="max-h-96 overflow-y-auto" role="listbox">
+                {searchResults.map((result, index) => (
+                  <button
+                    key={result.id}
+                    onClick={() => handleSelect(result)}
+                    className="w-full flex items-center gap-3 px-4 py-3 hover:bg-dark-border/50 transition-colors text-left border-b border-dark-border/50 last:border-b-0 focus:bg-dark-border outline-none"
+                    role="option"
+                    aria-selected={false}
+                  >
+                    <span className="text-xl">{result.icon}</span>
+                    <div className="flex-1 min-w-0">
+                      <div className="text-dark-text font-medium truncate">{result.label}</div>
+                      <div className="text-xs text-dark-text/50 capitalize">{result.category}</div>
+                    </div>
+                    <kbd className="hidden sm:inline text-xs bg-dark-border/50 rounded px-2 py-1 text-dark-text/50">
+                      {index === 0 ? '↵' : ''}
+                    </kbd>
+                  </button>
+                ))}
+              </div>
+            ) : searchQuery ? (
+              <div className="px-4 py-8 text-center text-dark-text/50">
+                No results found for "{searchQuery}"
+              </div>
+            ) : (
+              <div className="px-4 py-8 text-center">
+                <div className="text-dark-text/70 mb-4">Popular Searches</div>
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                  {SEARCH_DATA.slice(0, 6).map((item) => (
+                    <button
+                      key={item.id}
+                      onClick={() => handleSelect(item)}
+                      className="px-3 py-2 rounded bg-dark-border/30 hover:bg-dark-border/50 text-dark-text/70 hover:text-dark-text transition-all text-sm"
+                    >
+                      {item.icon} {item.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Footer */}
+            <div className="px-4 py-2 bg-dark-border/20 text-xs text-dark-text/50 flex justify-between items-center border-t border-dark-border">
+              <span>Keyboard shortcuts: ⌘K to open, ESC to close</span>
+            </div>
+          </div>
+        </div>
+      )}
+    </>
+  );
+};
+
+export default RyTopBarSearchModal;

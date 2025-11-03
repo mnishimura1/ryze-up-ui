@@ -1,0 +1,72 @@
+<!doctype html>
+<html lang="en" class="dark">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+    <meta name="theme-color" content="#00C8E8" />
+    <meta name="description" content="RYZE-UP HFT Dashboard - High-Performance Trading Engine with Real-Time Oracle Integration" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+    <meta name="apple-mobile-web-app-title" content="RYZE-UP" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="format-detection" content="telephone=no" />
+    <meta name="x-ua-compatible" content="IE=edge" />
+    <link rel="manifest" href="/manifest.json" />
+    <link rel="apple-touch-icon" href="/icon-192.png" />
+    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
+    <title>RYZE-UP HFT Dashboard</title>
+    <style>
+      @media (prefers-reduced-motion: reduce) {
+        * {
+          animation-duration: 0.01ms !important;
+          animation-iteration-count: 1 !important;
+          transition-duration: 0.01ms !important;
+        }
+      }
+      @media (prefers-contrast: high) {
+        :root {
+          --bg: #000;
+          --text: #fff;
+          --panel: #111;
+          --border: #fff;
+        }
+      }
+      @media (orientation: landscape) {
+        .portrait-only {
+          display: none;
+        }
+      }
+      @media (max-width: 640px) {
+        .desktop-only {
+          display: none;
+        }
+        button,
+        input,
+        select {
+          min-height: 44px;
+        }
+      }
+      @media (min-width: 641px) {
+        .mobile-only {
+          display: none;
+        }
+      }
+    </style>
+    <script type="module" crossorigin src="/assets/index-DuUQRVv2.js"></script>
+    <link rel="stylesheet" crossorigin href="/assets/index-BJJip63P.css">
+  </head>
+  <body class="bg-dark-bg text-dark-text">
+    <div id="root"></div>
+    <script>
+      if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.register('/sw.js').catch(err => console.log('SW registration error:', err));
+      }
+      if ('caches' in window) {
+        if ('serviceWorker' in navigator) {
+          navigator.serviceWorker.controller?.postMessage('PRECACHE');
+        }
+      }
+    </script>
+  </body>
+</html>

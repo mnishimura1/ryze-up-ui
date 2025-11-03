@@ -1,0 +1,23 @@
+{
+  "name": "RYZE-UP HFT Dashboard",
+  "short_name": "RYZE",
+  "description": "High-Performance Trading Engine with Real-Time Oracle Integration",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#FFFFFF",
+  "theme_color": "#00C8E8",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ],
+  "categories": ["finance", "productivity"]
+}
