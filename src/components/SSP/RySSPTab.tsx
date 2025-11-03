@@ -32,6 +32,13 @@ import {
   type SessionKey,
   type AssetRiskConfig,
 } from '../../lib/ssp-api'
+import {
+  RyFeeDistributionPie,
+  RyCEXL2Parser,
+  RyAMMImpactSimulator,
+  RyErrorHistogram,
+  RyQBSolverDisplay,
+} from './RyAdvancedAnalytics'
 
 // ===== SHIELD DIAL =====
 export const RyShieldDial: React.FC<{ poolId: string }> = ({ poolId }) => {
@@ -672,40 +679,131 @@ export const RySessionKeyDisplay: React.FC<{ poolId: string }> = ({ poolId }) =>
 // ===== MAIN SSP TAB =====
 export const SSPTab: React.FC = () => {
   const [poolId, setPoolId] = useState('ETH-USDC')
+  const [activeTab, setActiveTab] = useState<'dashboard' | 'analytics' | 'cex' | 'solver'>('dashboard')
 
   return (
     <div className="p-4 space-y-4">
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between mb-4">
         <h2 className="text-2xl font-bold">Smart Swap Protocol</h2>
         <div className="text-sm text-subtext">Pool: {poolId}</div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-        {/* LEFT COLUMN */}
-        <div className="space-y-4">
-          <RyPoolList poolId={poolId} onSelectPool={setPoolId} />
-          <RyShieldDial poolId={poolId} />
-          <RyHealthGauges poolId={poolId} />
-          <RySessionKeyDisplay poolId={poolId} />
-        </div>
-
-        {/* MIDDLE COLUMN */}
-        <div className="space-y-4">
-          <RyCircuitBanner poolId={poolId} />
-          <RySlippageGuard />
-          <RyDynamicFeePanel poolId={poolId} />
-          <RyBandCalibrationForm poolId={poolId} />
-          <RyADLEvents poolId={poolId} />
-        </div>
-
-        {/* RIGHT COLUMN */}
-        <div className="space-y-4">
-          <RyAggregationViz poolId={poolId} />
-          <RyComponentBreakdown poolId={poolId} />
-          <RySkewPenaltyVisualizer />
-          <RyqBandSelector />
-        </div>
+      {/* Tab Navigation */}
+      <div className="flex gap-2 border-b border-dark-border pb-2">
+        {[
+          { id: 'dashboard', label: 'Dashboard' },
+          { id: 'analytics', label: 'Analytics' },
+          { id: 'cex', label: 'CEX L2' },
+          { id: 'solver', label: 'Q(B) Solver' },
+        ].map((tab) => (
+          <button
+            key={tab.id}
+            onClick={() => setActiveTab(tab.id as any)}
+            className={`px-3 py-2 text-sm font-medium rounded-t transition-colors ${
+              activeTab === tab.id
+                ? 'bg-accent text-white'
+                : 'bg-transparent text-subtext hover:text-white'
+            }`}
+          >
+            {tab.label}
+          </button>
+        ))}
       </div>
+
+      {/* DASHBOARD TAB */}
+      {activeTab === 'dashboard' && (
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+          {/* LEFT COLUMN */}
+          <div className="space-y-4">
+            <RyPoolList poolId={poolId} onSelectPool={setPoolId} />
+            <RyShieldDial poolId={poolId} />
+            <RyHealthGauges poolId={poolId} />
+            <RySessionKeyDisplay poolId={poolId} />
+          </div>
+
+          {/* MIDDLE COLUMN */}
+          <div className="space-y-4">
+            <RyCircuitBanner poolId={poolId} />
+            <RySlippageGuard />
+            <RyDynamicFeePanel poolId={poolId} />
+            <RyBandCalibrationForm poolId={poolId} />
+            <RyADLEvents poolId={poolId} />
+          </div>
+
+          {/* RIGHT COLUMN */}
+          <div className="space-y-4">
+            <RyAggregationViz poolId={poolId} />
+            <RyComponentBreakdown poolId={poolId} />
+            <RySkewPenaltyVisualizer />
+            <RyqBandSelector />
+          </div>
+        </div>
+      )}
+
+      {/* ANALYTICS TAB */}
+      {activeTab === 'analytics' && (
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+          <RyFeeDistributionPie poolId={poolId} volume={100000} />
+          <RyErrorHistogram poolId={poolId} />
+          <RyAMMImpactSimulator />
+          <RySkewPenaltyVisualizer />
+        </div>
+      )}
+
+      {/* CEX L2 TAB */}
+      {activeTab === 'cex' && (
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+          <RyCEXL2Parser poolId={poolId} />
+          <RyCard>
+            <h4 className="text-sm mb-3">CEX Parity Metrics</h4>
+            <div className="space-y-2 text-xs">
+              <div className="p-2 bg-dark-surface rounded">
+                <div className="text-subtext mb-1">Binance vs Uniswap V3</div>
+                <div className="font-mono font-bold text-accent">+0.3 bps</div>
+              </div>
+              <div className="p-2 bg-dark-surface rounded">
+                <div className="text-subtext mb-1">Binance vs Balancer</div>
+                <div className="font-mono font-bold text-success">-0.5 bps</div>
+              </div>
+              <div className="p-2 bg-dark-surface rounded">
+                <div className="text-subtext mb-1">Binance vs Aerodrome</div>
+                <div className="font-mono font-bold text-warn">+1.2 bps</div>
+              </div>
+              <div className="p-2 bg-dark-surface rounded">
+                <div className="text-subtext mb-1">Monitoring Status</div>
+                <div className="font-mono font-bold text-success">✓ Active</div>
+              </div>
+            </div>
+          </RyCard>
+        </div>
+      )}
+
+      {/* Q(B) SOLVER TAB */}
+      {activeTab === 'solver' && (
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+          <RyQBSolverDisplay poolId={poolId} />
+          <RyCard>
+            <h4 className="text-sm mb-3">Q(B) Solver Info</h4>
+            <div className="space-y-2 text-xs text-subtext">
+              <p>
+                <strong>Formula:</strong> q(B) = log((max - min) / midpoint + 1) × 10
+              </p>
+              <p>
+                <strong>Smoothing:</strong> EWMA with α = 0.3
+              </p>
+              <p>
+                <strong>Error Threshold:</strong> &lt;1 bp (0.01%)
+              </p>
+              <p>
+                <strong>Updates:</strong> Real-time from /api/ssp/calibrate
+              </p>
+              <p className="mt-3 text-xs text-accent">
+                💡 Q(B) measures optimal band width for AMM market making
+              </p>
+            </div>
+          </RyCard>
+        </div>
+      )}
     </div>
   )
 }
